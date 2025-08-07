@@ -1,7 +1,7 @@
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.documents import Document
 from langchain_community.vectorstores import Chroma
-
+from langchain_core.text_splitter import RecursiveCharacterTextSplitter
 
 
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -32,3 +32,32 @@ for doc, score in results:
     print(f"Text: {doc.page_content}")
     print(f"Metadata: {doc.metadata}")
     print("---")
+    
+    
+    
+def process_document_file(file_path):
+    # Read the document
+    with open(file_path, 'r', encoding='utf-8') as f:
+        text = f.read()
+
+    # Split intelligently
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=500, 
+        chunk_overlap=50
+    )
+    chunks = splitter.split_text(text)
+
+    # Create documents with metadata
+    documents = [
+        Document(
+            page_content=chunk, 
+            metadata={"source": file_path, "chunk_id": i}
+        )
+        for i, chunk in enumerate(chunks)
+    ]
+
+    # Create searchable vector store
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    vectorstore = Chroma.from_documents(documents, embeddings)
+
+    return vectorstore
